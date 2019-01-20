@@ -3,14 +3,19 @@ package com.mux.libcamera.encoders;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
+import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class EncoderAudioAAC extends Encoder {
+
+    private final static String TAG = EncoderAudioAAC.class.getSimpleName();
+
     public final static int[] SupportedSampleRate = {
             96000,
             88200,
@@ -38,21 +43,62 @@ public class EncoderAudioAAC extends Encoder {
     private AudioRecord audioRecord;
 
     public EncoderAudioAAC(int sampleRate, int profile, int bitRate) throws IOException {
+
+        Log.e(TAG, "#-> EncoderAudioAAC ( sampleRate=" + sampleRate + " profile=" + profile + " bitRate=" + bitRate + ") ");
+
         audioRecord = new AudioRecord(MediaRecorder.AudioSource.CAMCORDER, sampleRate,
                 AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT,
                 getPcmBufferSize(sampleRate));
 
         MediaCodecList mcl = new MediaCodecList(MediaCodecList.ALL_CODECS);
+
+
+        for (int i = 0; i < MediaCodecList.getCodecCount(); i++) {
+
+            MediaCodecInfo curInfo = MediaCodecList.getCodecInfoAt(i);
+
+            if (!curInfo.isEncoder())
+                continue;
+
+            String[] types = curInfo.getSupportedTypes();
+
+            Log.e(TAG, "    EncoderAudioAAC ( ) codec=[" + curInfo.getName() + "] ");
+
+            int j = 0;
+            for (j = 0; j < types.length; j++) {
+                Log.e(TAG, "                  " + types[j]);
+                try {
+                    MediaCodecInfo.CodecCapabilities cap = curInfo.getCapabilitiesForType(types[j]);
+                    for (int x = 0; x < cap.profileLevels.length; x++) {
+                        Log.e(TAG, "                    profile=" + cap.profileLevels[x].profile + " level=" + cap.profileLevels[x].level);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, Log.getStackTraceString(e));
+                }
+
+            }
+
+        }
+
+
         MediaFormat mediaFormat = new MediaFormat();
         mediaFormat.setString(MediaFormat.KEY_MIME, "audio/mp4a-latm");
-        mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, profile);
+        //mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, profile);
         mediaFormat.setInteger(MediaFormat.KEY_SAMPLE_RATE, sampleRate);
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
         mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 2);
+
         String encoderName = mcl.findEncoderForFormat(mediaFormat);
+
+        Log.e(TAG, "    EncoderAudioAAC ( encoderName=" + encoderName + ") ");
+
         mediaCodec = MediaCodec.createByCodecName(encoderName);
+
         mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         bufferFormat = mediaCodec.getOutputFormat();
+
+        Log.e(TAG, "<-# EncoderAudioAAC ( )");
+
     }
 
     private int getPcmBufferSize(int sampleRate) {

@@ -16,93 +16,143 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 
-public class SinkRtmp implements Encoder.ISink {
-    private final static String TAG = "rtmpSink";
+public class SinkRtmp implements Encoder.ISink
+{
+
+    private final static String TAG = SinkRtmp.class.getSimpleName ( );
+
     private DefaultRtmpPublisher publisher;
     private HandlerThread rtmpThread;
     private Handler rtmpHandler;
     private int audioQueueSize = 0, videoQueueSize = 0;
-    private SrsFlvMuxer muxer = new SrsFlvMuxer();
+    private SrsFlvMuxer muxer = new SrsFlvMuxer ( );
     private boolean audioTrackInited = false, videoTrackInited = false;
 
-    public SinkRtmp(final String url, final Size videoSize, RtmpHandler.RtmpListener listener) {
-        RtmpHandler handler = new RtmpHandler(listener);
-        publisher = new DefaultRtmpPublisher(handler);
-        rtmpThread = new HandlerThread("rtmpThread");
-        rtmpThread.start();
-        rtmpHandler = new Handler(rtmpThread.getLooper());
-        rtmpHandler.post(new Runnable() {
+    public SinkRtmp ( final String url , final Size videoSize , RtmpHandler.RtmpListener listener )
+    {
+
+        Log.e ( TAG , "#-> SinkRtmp ( url=" + url + " videoSize=" + videoSize );
+
+        RtmpHandler handler = new RtmpHandler ( listener );
+        publisher = new DefaultRtmpPublisher ( handler );
+        rtmpThread = new HandlerThread ( "rtmpThread" );
+        rtmpThread.start ( );
+        rtmpHandler = new Handler ( rtmpThread.getLooper ( ) );
+        rtmpHandler.post ( new Runnable ( )
+        {
             @Override
-            public void run() {
-                if (publisher.connect(url)) {
-                    boolean connected = publisher.publish("live");
-                    if (connected) {
-                        publisher.setVideoResolution(videoSize.getWidth(), videoSize.getHeight());
-                    } else {
-                        publisher.close();
+            public void run ( )
+            {
+                if ( publisher.connect ( url ) )
+                {
+                    boolean connected = publisher.publish ( "live" );
+                    if ( connected )
+                    {
+                        publisher.setVideoResolution ( videoSize.getWidth ( ) , videoSize.getHeight ( ) );
+                    }
+                    else
+                    {
+                        publisher.close ( );
                         publisher = null;
                     }
                 }
             }
-        });
+        } );
+
+        Log.e ( TAG , "<-# SinkRtmp ( url=" + url + " videoSize=" + videoSize );
     }
 
     @Override
-    public void close() {
-        rtmpHandler.post(new Runnable() {
+    public void close ( )
+    {
+        rtmpHandler.post ( new Runnable ( )
+        {
             @Override
-            public void run() {
-                if (publisher != null) {
-                    publisher.close();
+            public void run ( )
+            {
+                if ( publisher != null )
+                {
+                    publisher.close ( );
                 }
-                rtmpThread.quitSafely();
+                rtmpThread.quitSafely ( );
             }
-        });
+        } );
     }
 
     @Override
-    public void onSample(final ByteBuffer buffer, final MediaFormat format,
-            final MediaCodec.BufferInfo info) {
-        String mime = format.getString(MediaFormat.KEY_MIME);
-        final boolean isVideo = (mime.indexOf("video/") == 0);
-        if (!audioTrackInited && !isVideo) {
-            muxer.addTrack(isVideo, format);
+    public void onSample ( final ByteBuffer buffer , final MediaFormat format ,
+                           final MediaCodec.BufferInfo info )
+    {
+
+        String mime = format.getString ( MediaFormat.KEY_MIME );
+
+        final boolean isVideo = ( mime.indexOf ( "video/" ) == 0 );
+
+        if ( !audioTrackInited && !isVideo )
+        {
+
+            muxer.addTrack ( isVideo , format );
             audioTrackInited = true;
-        } else if (!videoTrackInited && isVideo) {
-            muxer.addTrack(isVideo, format);
+
+        }
+        else if ( !videoTrackInited && isVideo )
+        {
+
+            muxer.addTrack ( isVideo , format );
             videoTrackInited = true;
+
         }
 
-        final SrsFlvMuxer.SrsFlvFrame frame = muxer.writeSampleData(isVideo, buffer, info);
-        if (isVideo) {
+        final SrsFlvMuxer.SrsFlvFrame frame = muxer.writeSampleData ( isVideo , buffer , info );
+
+        if ( isVideo )
+        {
             videoQueueSize++;
-        } else {
+        }
+        else
+        {
             audioQueueSize++;
         }
-        if (frame != null && videoQueueSize < 30 && audioQueueSize < 200) {
-            rtmpHandler.post(new Runnable() {
+
+
+        if ( frame != null && videoQueueSize < 30 && audioQueueSize < 200 )
+        {
+            rtmpHandler.post ( new Runnable ( )
+            {
                 @Override
-                public void run() {
-                    if (isVideo) {
-                        publisher.publishVideoData(frame.flvTag.array(), frame.flvTag.size(),
-                                frame.dts);
-                        videoQueueSize--;
-                    } else if (frame.isAudio()) {
-                        publisher.publishAudioData(frame.flvTag.array(), frame.flvTag.size(),
-                                frame.dts);
-                        audioQueueSize--;
+                public void run ( )
+                {
+
+                    if ( publisher != null )
+                    {
+                        if ( isVideo )
+                        {
+                            publisher.publishVideoData ( frame.flvTag.array ( ) , frame.flvTag.size ( ) ,
+                                    frame.dts );
+                            videoQueueSize--;
+                        }
+                        else if ( frame.isAudio ( ) )
+                        {
+                            publisher.publishAudioData ( frame.flvTag.array ( ) , frame.flvTag.size ( ) ,
+                                    frame.dts );
+                            audioQueueSize--;
+                        }
                     }
-                    muxer.releaseFrame(frame);
+                    muxer.releaseFrame ( frame );
                 }
-            });
-        } else {
-            if (isVideo) {
+            } );
+        }
+        else
+        {
+            if ( isVideo )
+            {
                 videoQueueSize--;
-            } else {
+            }
+            else
+            {
                 audioQueueSize--;
             }
         }
-        Log.v(TAG,
-                String.format("queue size, video=%d, audio=%d", videoQueueSize, audioQueueSize));
+        Log.v ( TAG , String.format ( "    queue size, video=%d, audio=%d" , videoQueueSize , audioQueueSize ) );
     }
 }

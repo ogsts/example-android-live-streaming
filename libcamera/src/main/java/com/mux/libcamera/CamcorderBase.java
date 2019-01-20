@@ -16,7 +16,7 @@ import com.mux.libcamera.encoders.Encoder;
 import java.io.IOException;
 import java.util.List;
 
-public abstract class CamcorderBase {
+public abstract class  CamcorderBase {
     protected Encoder videoEncoder, audioEncoder;
     protected List<Size> supportedCaptureSizes;
     protected int captureSizeIndex = 0;

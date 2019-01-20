@@ -5,6 +5,7 @@ import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.support.annotation.NonNull;
+import android.util.Log;
 import android.util.Size;
 
 import java.io.IOException;
@@ -12,19 +13,34 @@ import java.nio.ByteBuffer;
 
 public class EncoderVideoH264 extends Encoder {
 
+    private final static String TAG = EncoderVideoH264.class.getSimpleName();
+
     public EncoderVideoH264(Size videoSize, boolean async) throws IOException {
+
+        Log.e(TAG, "#-> EncoderVideoH264 ( async=" + async + " ) ");
+
         MediaCodecList mcl = new MediaCodecList(MediaCodecList.ALL_CODECS);
+
         MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", videoSize.getWidth(),
                 videoSize.getHeight());
+
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 10000000);
+
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
+
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
                 async ? MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface :
-                        MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar);
+                        MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible
+                /*COLOR_FormatYUV420Planar*/);
+
         mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
         //mediaFormat.setInteger(MediaFormat.KEY_ROTATION, 0);
+
         String encoderName = mcl.findEncoderForFormat(mediaFormat);
+
         mediaCodec = MediaCodec.createByCodecName(encoderName);
+
+
         if (async) {
             mediaCodec.setCallback(new MediaCodec.Callback() {
                 @Override
@@ -33,10 +49,12 @@ public class EncoderVideoH264 extends Encoder {
 
                 @Override
                 public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index,
-                        @NonNull MediaCodec.BufferInfo info) {
+                                                    @NonNull MediaCodec.BufferInfo info) {
                     ByteBuffer outputBuffer = codec.getOutputBuffer(index);
                     MediaFormat bufferFormat = codec.getOutputFormat(index);
-                    //Log.v("TAG", "Output " + info.size + " bytes at " + info.presentationTimeUs);
+
+                    Log.v(TAG, "Output " + info.size + " bytes at " + info.presentationTimeUs);
+
                     if (sink != null && !pauseEncoding) {
                         sink.onSample(outputBuffer, bufferFormat, info);
                     }
@@ -45,18 +63,20 @@ public class EncoderVideoH264 extends Encoder {
 
                 @Override
                 public void onError(@NonNull MediaCodec codec,
-                        @NonNull MediaCodec.CodecException e) {
+                                    @NonNull MediaCodec.CodecException e) {
 
                 }
 
                 @Override
                 public void onOutputFormatChanged(@NonNull MediaCodec codec,
-                        @NonNull MediaFormat format) {
+                                                  @NonNull MediaFormat format) {
                 }
             });
         }
         mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         bufferFormat = mediaCodec.getOutputFormat();
+
+        Log.e(TAG, "<-# EncoderVideoH264 ( ) ");
     }
 
     private MediaFormat bufferFormat;
@@ -66,7 +86,7 @@ public class EncoderVideoH264 extends Encoder {
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
 
         int offset = 0;
-        while(size != 0) {
+        while (size != 0) {
             int inputBufferId = mediaCodec.dequeueInputBuffer(25000);
             if (inputBufferId >= 0) {
                 ByteBuffer inputBuffers = mediaCodec.getInputBuffer(inputBufferId);
