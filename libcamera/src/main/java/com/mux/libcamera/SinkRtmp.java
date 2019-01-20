@@ -65,6 +65,8 @@ public class SinkRtmp implements Encoder.ISink
     @Override
     public void close ( )
     {
+        Log.e ( TAG , "#-> close ( )" );
+
         rtmpHandler.post ( new Runnable ( )
         {
             @Override
@@ -77,6 +79,8 @@ public class SinkRtmp implements Encoder.ISink
                 rtmpThread.quitSafely ( );
             }
         } );
+
+        Log.e ( TAG , "<-# close ( )" );
     }
 
     @Override
@@ -90,14 +94,14 @@ public class SinkRtmp implements Encoder.ISink
 
         if ( !audioTrackInited && !isVideo )
         {
-
+            Log.e ( TAG , "    onSample ( )  addTrack ( AUDIO )" );
             muxer.addTrack ( isVideo , format );
             audioTrackInited = true;
 
         }
         else if ( !videoTrackInited && isVideo )
         {
-
+            Log.e ( TAG , "    onSample ( )  addTrack ( VIDEO )" );
             muxer.addTrack ( isVideo , format );
             videoTrackInited = true;
 

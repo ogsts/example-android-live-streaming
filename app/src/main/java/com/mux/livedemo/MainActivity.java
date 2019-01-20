@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                 try
                 {
                     camera.startRecord ( MainActivity.this ,
-                            "d27162fa-f8db-663a-101c-ed64e9696e54" ,
+                            "{key}" ,
                             MainActivity.this );
                     Button btn = findViewById ( R.id.recoButton );
                     btn.setEnabled ( false );
@@ -164,10 +164,11 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
 
     private void openCamera ( )
     {
+        Log.d ( TAG , "#-> openCamera ( ) " );
 
         try
         {
-            camera = CamcorderBase.CreateCamera ( 1 , this , 0 ,
+            camera = CamcorderBase.CreateCamera ( 2 , this , 0 ,
                     new CamcorderBase.OnCameraOpenListener ( )
                     {
                         @Override
@@ -179,20 +180,28 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                             }
                         }
                     } );
+
+
             FrameLayout container = findViewById ( R.id.camera );
+
             View preview = camera.getPreview ( );
+
             preview.setLayoutParams ( new FrameLayout.LayoutParams (
                     FrameLayout.LayoutParams.MATCH_PARENT ,
                     FrameLayout.LayoutParams.MATCH_PARENT ) );
+
             container.addView ( preview );
 
             List< Size > sizes = camera.getSupportedCaptureSizes ( );
+
             camera.setCaptureSizeIndex ( 1 );
         }
         catch ( Exception e )
         {
             e.printStackTrace ( );
         }
+
+        Log.d ( TAG , "<-# openCamera ( ) " );
     }
 
     @Override
@@ -229,9 +238,13 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     public void onRequestPermissionsResult ( int requestCode , @NonNull String[] permissions ,
                                              @NonNull int[] grantResults )
     {
+
+
         AlertDialog alertDialog = new AlertDialog.Builder ( this ).create ( );
         alertDialog.setTitle ( "Error" );
         alertDialog.setMessage ( "Permission grant failed" );
+
+
         alertDialog.setButton ( AlertDialog.BUTTON_POSITIVE , "OK" ,
                 new DialogInterface.OnClickListener ( )
                 {
@@ -240,9 +253,12 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                         dialog.dismiss ( );
                     }
                 } );
+
+
         if ( requestCode == REQUEST_VIDEO_PERMISSIONS )
         {
             boolean showError = false;
+
             if ( grantResults.length == VIDEO_PERMISSIONS.length )
             {
                 for ( int result : grantResults )

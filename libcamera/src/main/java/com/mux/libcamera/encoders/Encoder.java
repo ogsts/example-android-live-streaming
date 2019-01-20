@@ -50,7 +50,7 @@ public abstract class Encoder
 
     ISink sink;
 
-    public void setSink ( ISink sink )
+    public void  setSink ( ISink sink )
     {
         this.sink = sink;
     }

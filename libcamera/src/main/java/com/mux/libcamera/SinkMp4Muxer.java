@@ -5,6 +5,7 @@ import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
 import android.os.Environment;
+import android.util.Log;
 
 import com.mux.libcamera.encoders.Encoder;
 
@@ -15,6 +16,7 @@ import java.util.Hashtable;
 
 public class SinkMp4Muxer implements Encoder.ISink
 {
+    private final static String TAG = SinkMp4Muxer.class.getSimpleName ( );
     private MediaMuxer muxer;
     private Hashtable< String, Integer > trackTable = new Hashtable<> ( );
     private int trackCount;
@@ -23,9 +25,13 @@ public class SinkMp4Muxer implements Encoder.ISink
     {
         try
         {
+            Log.e ( TAG , "#-> SinkMp4Muxer ( name=" + name + " trackCount=" + trackCount + " )" );
+
             File file = new File ( Environment.getExternalStorageDirectory ( ) , name );
             muxer = new MediaMuxer ( file.getAbsolutePath ( ) , MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4 );
             this.trackCount = trackCount;
+
+            Log.e ( TAG , "<-# SinkMp4Muxer ( name=" + name + " trackCount=" + trackCount + " )" );
         }
         catch ( IOException e )
         {
